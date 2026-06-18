@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="en" class="antialiased">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BATMAN // THE DARK SYSTEM</title>
+    
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            bg: '#050505',
+                            text: '#ffffff',
+                            tactical: '#D4AF37',
+                            warning: '#DC2626',
+                            steel: '#1F2937',
+                            accent: '#3B82F6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        orbitron: ['Orbitron', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Plugins -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/studio-freight/lenis@1.0.29/bundled/lenis.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #050505;
+            --tactical: #D4AF37;
+            --warning: #DC2626;
+            --steel: #1F2937;
+            --accent: #3B82F6;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            background-color: var(--bg);
+            color: #ffffff;
+            overflow-x: hidden;
+            cursor: crosshair;
+            scrollbar-width: none;
+        }
+        body::-webkit-scrollbar { display: none; }
+
+        ::selection { background: var(--tactical); color: var(--bg); }
+
+        /* CRT Screen Overlay & Flicker */
+        .crt-overlay {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 100;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            background-size: 100% 2px, 3px 100%;
+            opacity: 0.1;
+        }
+
+        /* Cursor Spotlight */
+        #spotlight {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none; z-index: 99;
+            background: radial-gradient(circle 300px at var(--x, 50vw) var(--y, 50vh), rgba(0,0,0,0) 0%, rgba(5,5,5,0.9) 80%);
+            transition: background 0.3s ease;
+        }
+
+        body.hover-active #spotlight {
+            background: radial-gradient(circle 450px at var(--x, 50vw) var(--y, 50vh), rgba(255,255,255,0.08) 0%, rgba(5,5,5,0.8) 80%);
+        }
+
+        /* Glitch Text Effect */
+        .glitch {
+            position: relative;
+        }
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background: transparent;
+        }
+        .glitch::before {
+            left: 2px; text-shadow: -1px 0 var(--warning);
+            animation: glitch-anim-1 2s infinite linear alternate-reverse;
+            clip-path: polygon(0 0, 100% 0, 100% 30%, 0 30%);
+        }
+        .glitch::after {
+            left: -2px; text-shadow: -1px 0 var(--accent);
+            animation: glitch-anim-2 3s infinite linear alternate-reverse;
+            clip-path: polygon(0 70%, 100% 70%, 100% 100%, 0 100%);
+        }
+
+        @keyframes glitch-anim-1 {
+            0% { clip-path: inset(20% 0 80% 0); }
+            20% { clip-path: inset(60% 0 10% 0); }
+            40% { clip-path: inset(40% 0 50% 0); }
+            60% { clip-path: inset(80% 0 5% 0); }
+            80% { clip-path: inset(10% 0 70% 0); }
+            100% { clip-path: inset(30% 0 20% 0); }
+        }
+        @keyframes glitch-anim-2 {
+            0% { clip-path: inset(10% 0 60% 0); }
+            20% { clip-path: inset(30% 0 20% 0); }
+            40% { clip-path: inset(70% 0 10% 0); }
+            60% { clip-path: inset(20% 0 50% 0); }
+            80% { clip-path: inset(50% 0 30% 0); }
+            100% { clip-path: inset(5% 0 80% 0); }
+        }
+
+        /* Scanner Line */
+        .scanner-line {
+            position: absolute; top: 0; left: 0; width: 100%; height: 2px;
+            background: var(--tactical);
+            box-shadow: 0 0 10px var(--tactical);
+            animation: scan 3s linear infinite;
+        }
+        @keyframes scan {
+            0% { top: 0; opacity: 0; }
+            10% { opacity: 1; }
+            90% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* Tactical Button */
+        .tactical-btn {
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+        .tactical-btn::before {
+            content: '';
+            position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.4), transparent);
+            transition: all 0.5s ease;
+        }
+        .tactical-btn:hover::before { left: 100%; }
+        .tactical-btn:hover {
+            box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);
+            border-color: var(--warning);
+            color: var(--warning);
+        }
+
+        /* Initializer Screen */
+        #initializer {
+            position: fixed; inset: 0; z-index: 9999;
+            background: #050505; display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+        }
+
+        .terminal-text {
+            font-family: 'Courier New', Courier, monospace;
+            color: var(--tactical);
+            font-size: 14px;
+            margin-bottom: 5px;
+            opacity: 0;
+        }
+
+        /* Dossier Cards */
+        .dossier-card {
+            clip-path: polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px);
+            border: 1px solid var(--steel);
+            border-left: 3px solid var(--steel);
+            transition: all 0.4s ease;
+            background: rgba(10, 10, 10, 0.8);
+            backdrop-filter: blur(10px);
+        }
+        .dossier-card:hover {
+            border-left-color: var(--tactical);
+            box-shadow: inset 0 0 30px rgba(212,175,55,0.05);
+        }
+
+        /* Progress Bars */
+        .tactical-progress-bg { background: rgba(31, 41, 55, 0.5); height: 4px; width: 100%; position: relative; margin-top: 8px; }
+        .tactical-progress-fill { background: var(--tactical); height: 100%; width: 0%; box-shadow: 0 0 10px var(--tactical); }
+
+        /* HUD Corners */
+        .hud-corner { position: absolute; width: 20px; height: 20px; border-color: var(--steel); border-style: solid; }
+        .hud-tl { top: 0; left: 0; border-width: 2px 0 0 2px; }
+        .hud-tr { top: 0; right: 0; border-width: 2px 2px 0 0; }
+        .hud-bl { bottom: 0; left: 0; border-width: 0 0 2px 2px; }
+        .hud-br { bottom: 0; right: 0; border-width: 0 2px 2px 0; }
+        
+        .bat-signal {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            background: radial-gradient(circle, rgba(212,175,55,0.8) 0%, rgba(0,0,0,0) 70%);
+            opacity: 0;
+            pointer-events: none;
+            mix-blend-mode: screen;
+        }
+
+        .scroll-container {
+            height: 600vh;
+        }
+
+        /* Ambient Audio Trigger */
+        #audio-trigger {
+            position: fixed;
+            bottom: 20px; right: 20px;
+            z-index: 1000;
+            border: 1px solid var(--steel);
+            padding: 8px 12px;
+            font-size: 12px;
+            font-family: 'Orbitron';
+            color: var(--tactical);
+            background: rgba(0,0,0,0.8);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        #audio-trigger:hover {
+            border-color: var(--tactical);
+            box-shadow: 0 0 10px rgba(212,175,55,0.3);
+        }
+
+        /* Bat Entity */
+        .bat-entity {
+            position: fixed;
+            pointer-events: none;
+            z-index: 101;
+            margin-left: -40px;
+            margin-top: -20px;
+        }
+
+        .bat-wing {
+            animation: flap 0.15s infinite alternate ease-in-out;
+            transform-origin: 50% 25px;
+        }
+
+        @keyframes flap {
+            0% { transform: scaleY(1); }
+            100% { transform: scaleY(-0.3); }
+        }
+
+        @keyframes pulseEye {
+            0% { fill: #ff0000; filter: drop-shadow(0 0 5px #ff0000) drop-shadow(0 0 10px #ff0000); }
+            100% { fill: #ff5555; filter: drop-shadow(0 0 15px #ff0000) drop-shadow(0 0 25px #ff0000); }
+        }
+
+        /* Custom Crosshair */
+        #crosshair {
+            position: fixed; pointer-events: none; z-index: 1000;
+            width: 30px; height: 30px;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            transition: width 0.3s, height 0.3s, border-color 0.3s;
+        }
+        #crosshair::before, #crosshair::after {
+            content: ''; position: absolute; background: rgba(212, 175, 55, 0.8);
+        }
+        #crosshair::before { top: 50%; left: -5px; right: -5px; height: 1px; transform: translateY(-50%); }
+        #crosshair::after { left: 50%; top: -5px; bottom: -5px; width: 1px; transform: translateX(-50%); }
+        
+        body.hover-active #crosshair {
+            width: 50px; height: 50px;
+            border-color: rgba(220, 38, 38, 0.6);
+            border-style: dashed;
+            animation: spin 4s linear infinite;
+        }
+        body.hover-active #crosshair::before, body.hover-active #crosshair::after {
+            background: rgba(220, 38, 38, 0.9);
+        }
+        @keyframes spin { 100% { transform: translate(-50%, -50%) rotate(360deg); } }
+
+        /* Tactical Grid Background */
+        .grid-bg {
+            background-image: 
+                linear-gradient(rgba(212, 175, 55, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(212, 175, 55, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+
+        /* Data Stream Animation */
+        @keyframes scrollUp {
+            0% { transform: translateY(0); }
+            100% { transform: translateY(-50%); }
+        }
+        .data-stream {
+            display: inline-block;
+            animation: scrollUp 20s linear infinite;
+        }
+
+    </style>
+</head>
+<body>
+
+    <!-- Audio Element (Placeholder for batcave ambient) -->
+    <audio id="ambient-audio" loop>
+        <source src="https://assets.mixkit.co/sfx/preview/mixkit-wind-and-rain-loop-2404.mp3" type="audio/mpeg">
+    </audio>
+
+    <button id="audio-trigger">SYSTEM AUDIO: OFF</button>
+
+    <!-- Global Effects -->
+    <div class="crt-overlay"></div>
+    <div id="spotlight"></div>
+    <div id="crosshair"></div>
+
+    <!-- Ambient Tactical UI Decor -->
+    <div class="fixed top-0 left-0 h-full w-12 border-r border-brand-steel/20 z-0 pointer-events-none flex flex-col justify-between py-12 opacity-30">
+        <div class="text-[10px] font-mono text-brand-tactical -rotate-90 origin-center whitespace-nowrap">SYS_STATUS: OPTIMAL</div>
+        <div class="w-full h-32 border-r-2 border-brand-warning/50"></div>
+        <div class="text-[10px] font-mono text-brand-tactical -rotate-90 origin-center whitespace-nowrap">LAT: 40.7128 // LON: -74.0060</div>
+    </div>
+    
+    <div class="fixed top-0 right-0 h-full w-12 border-l border-brand-steel/20 z-0 pointer-events-none flex flex-col justify-center items-center opacity-30">
+        <div class="h-64 overflow-hidden w-full flex justify-center text-[8px] font-mono text-brand-accent/50 text-center leading-tight">
+            <div class="data-stream">
+                0100110<br>1100101<br>0011010<br>1010111<br>1110001<br>0001110<br>1101010<br>0101010<br>1111000<br>0000111<br>0100110<br>1100101<br>0011010<br>1010111<br>1110001<br>0001110<br>1101010<br>0101010<br>1111000<br>0000111
+            </div>
+        </div>
+    </div>
+
+    <div class="fixed top-1/2 left-0 -translate-y-1/2 -z-10 w-full overflow-hidden pointer-events-none opacity-[0.02] flex flex-col gap-32">
+        <div class="parallax-bg-1 text-[10rem] md:text-[15rem] font-orbitron font-black text-white whitespace-nowrap -translate-x-10 tracking-widest">WAYNE ENTERPRISES // SECURE COMM</div>
+        <div class="parallax-bg-2 text-[10rem] md:text-[15rem] font-orbitron font-black text-brand-warning whitespace-nowrap translate-x-20 tracking-widest">PROJECT OVERRIDE // 0089</div>
+    </div>
+
+    <!-- Opening Cinematic Initializer -->
+    <div id="initializer">
+        <div class="text-left w-64">
+            <div class="terminal-text init-text">> Initializing Tactical Systems...</div>
+            <div class="terminal-text init-text">> Bypassing Mainframe Security...</div>
+            <div class="terminal-text init-text">> Establishing Secure Link...</div>
+            <div class="terminal-text init-text text-brand-tactical mt-4">> Access Granted.</div>
+            <div class="terminal-text init-text text-white text-xl mt-2 font-orbitron glitch" data-text="Welcome, Batman.">Welcome, Batman Theme Portfolio.</div>
+        </div>
+    </div>
+
+    <!-- Pinned Scroll Container -->
+    <div class="scroll-container relative w-full" id="main-scroll">
+        
+        <!-- Background Canvas & 3D Environment -->
+        <div class="sticky top-0 h-screen w-full overflow-hidden bg-brand-bg z-0">
+            <!-- Video 1 (Part 1) -->
+            <video id="bg-video-1" src="./Video/Video Project 1.mp4" autoplay loop muted playsinline class="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-70"></video>
+            
+            <!-- Video 2 (Part 2) -->
+            <video id="bg-video-2" src="./Video/Video Project 2.mp4" loop muted playsinline class="absolute top-0 left-0 w-full h-full object-cover z-0 opacity-0"></video>
+            
+            <!-- Sequence Canvas for Frames -->
+            <canvas id="sequence-canvas" class="absolute top-0 left-0 w-full h-full z-0 object-cover opacity-0 mix-blend-screen"></canvas>
+
+            <!-- 3D Scene Container (Fog/Rain/Particles) -->
+            <canvas id="three-canvas" class="absolute top-0 left-0 w-full h-full z-10 pointer-events-none opacity-40"></canvas>
+            
+            <!-- Dark Vignette Overlay -->
+            <div class="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,#050505_100%)] z-10 pointer-events-none"></div>
+        </div>
+
+        <!-- Scroll Content Sections -->
+        <div class="absolute top-0 left-0 w-full z-20 pointer-events-none">
+            
+            <!-- SECTION 1: IDENTITY -->
+            <section class="h-screen flex items-center justify-center relative panel" id="sec-identity">
+                <div class="bat-signal" id="main-bat-signal"></div>
+                <div class="text-center z-20 pointer-events-auto px-4 hero-content opacity-0">
+                    <h1 class="text-7xl md:text-[12rem] font-orbitron font-black text-white tracking-widest uppercase glitch drop-shadow-[0_0_30px_rgba(255,255,255,0.2)]" data-text="BATMAN">BATMAN</h1>
+                    <div class="h-[1px] w-0 bg-brand-tactical mx-auto mt-4 hero-line shadow-[0_0_10px_#D4AF37]"></div>
+                    <p class="text-brand-tactical font-orbitron tracking-[0.5em] mt-6 uppercase text-sm md:text-xl hero-subtitle opacity-0">The Engineer Behind The System</p>
+                </div>
+            </section>
+
+            <!-- SECTION 2: TACTICAL SKILLS -->
+            <section class="h-screen flex items-center px-6 md:px-32 relative panel" id="sec-skills">
+                <!-- NEW: Right side Hologram -->
+                <div class="w-[400px] h-[400px] absolute right-10 md:right-32 top-1/2 -translate-y-1/2 opacity-0 scale-50 skill-hologram pointer-events-none hidden lg:flex justify-center items-center z-0">
+                    <svg viewBox="0 0 100 100" class="absolute w-full h-full animate-[spin_20s_linear_infinite]">
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="#D4AF37" stroke-width="0.5" stroke-dasharray="2 4"/>
+                        <circle cx="50" cy="50" r="35" fill="none" stroke="#DC2626" stroke-width="0.5" stroke-dasharray="10 5"/>
+                        <circle cx="50" cy="50" r="25" fill="none" stroke="#D4AF37" stroke-width="1"/>
+                        <polygon points="50,15 85,75 15,75" fill="none" stroke="#3B82F6" stroke-width="0.5" class="animate-pulse"/>
+                        <polygon points="50,85 15,25 85,25" fill="none" stroke="#3B82F6" stroke-width="0.5" class="animate-pulse" style="animation-delay: 0.5s"/>
+                    </svg>
+                    <div class="absolute font-mono text-brand-tactical text-[10px] tracking-widest text-center uppercase">
+                        Neural<br>Metrics<br><span class="text-brand-warning">Scanning...</span>
+                    </div>
+                </div>
+                <div class="max-w-2xl w-full border border-brand-steel bg-black/60 backdrop-blur-md p-8 md:p-12 relative overflow-hidden pointer-events-auto skill-panel opacity-0 translate-x-[-50px] grid-bg">
+                    <div class="hud-corner hud-tl"></div>
+                    <div class="hud-corner hud-tr"></div>
+                    <div class="hud-corner hud-bl"></div>
+                    <div class="hud-corner hud-br"></div>
+                    <div class="scanner-line"></div>
+                    
+                    <h2 class="text-2xl md:text-4xl font-orbitron text-brand-tactical mb-10 flex items-center gap-4">
+                        <span class="w-3 h-3 bg-brand-tactical animate-pulse shadow-[0_0_10px_#D4AF37]"></span>
+                        TACTICAL DIAGNOSTICS
+                    </h2>
+                    
+                    <div class="space-y-8 font-sans">
+                        <div class="skill-item">
+                            <div class="flex justify-between text-gray-300 font-orbitron text-sm mb-1 uppercase tracking-wider"><span>Programming</span> <span class="text-brand-tactical">98%</span></div>
+                            <div class="tactical-progress-bg"><div class="tactical-progress-fill" style="width: 98%;"></div></div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="flex justify-between text-gray-300 font-orbitron text-sm mb-1 uppercase tracking-wider"><span>AI Systems</span> <span class="text-brand-tactical">95%</span></div>
+                            <div class="tactical-progress-bg"><div class="tactical-progress-fill" style="width: 95%;"></div></div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="flex justify-between text-gray-300 font-orbitron text-sm mb-1 uppercase tracking-wider"><span>Automation</span> <span class="text-brand-tactical">92%</span></div>
+                            <div class="tactical-progress-bg"><div class="tactical-progress-fill" style="width: 92%;"></div></div>
+                        </div>
+                        <div class="skill-item">
+                            <div class="flex justify-between text-gray-300 font-orbitron text-sm mb-1 uppercase tracking-wider"><span>System Design</span> <span class="text-brand-tactical">99%</span></div>
+                            <div class="tactical-progress-bg"><div class="tactical-progress-fill" style="width: 99%;"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 3: MISSION FILES -->
+            <section class="h-screen flex flex-col justify-center items-center px-4 relative panel" id="sec-missions">
+                <!-- NEW: Background Tactical Decor -->
+                <div class="absolute inset-0 w-full h-full opacity-0 mission-bg pointer-events-none flex justify-center items-center overflow-hidden z-0">
+                    <div class="w-[200%] h-[1px] bg-brand-tactical/30 absolute top-1/3 -rotate-12 shadow-[0_0_10px_#D4AF37]"></div>
+                    <div class="w-[200%] h-[1px] bg-brand-warning/30 absolute top-2/3 rotate-12 shadow-[0_0_10px_#DC2626]"></div>
+                    <div class="w-full h-full grid-bg absolute inset-0 opacity-50"></div>
+                    <div class="absolute top-32 left-10 md:left-20 border border-brand-tactical/30 p-4 bg-black/50 backdrop-blur text-[10px] md:text-xs font-mono text-brand-tactical hidden md:block">
+                        > TRACKING MULTIPLE TARGETS<br>> DECRYPTING PAYLOAD...
+                    </div>
+                    <div class="absolute bottom-32 right-10 md:right-20 border border-brand-warning/30 p-4 bg-black/50 backdrop-blur text-[10px] md:text-xs font-mono text-brand-warning hidden md:block">
+                        ! UNAUTHORIZED ACCESS DETECTED
+                    </div>
+                </div>
+
+                <div class="w-full max-w-6xl pointer-events-auto z-10">
+                    <div class="text-center mb-12 mission-header opacity-0">
+                        <h2 class="text-xl md:text-3xl font-orbitron text-brand-tactical tracking-[0.3em] inline-block border-b border-brand-tactical/30 pb-2">
+                            [ MISSION FILES // CLASSIFIED ]
+                        </h2>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12">
+                        <!-- Project 1 File -->
+                        <div class="dossier-card group relative p-3 cursor-pointer overflow-hidden mission-card opacity-0 translate-y-[50px]">
+                            <div class="hud-corner hud-tl"></div>
+                            <div class="hud-corner hud-br"></div>
+                            <div class="aspect-[16/9] relative overflow-hidden bg-black border border-brand-steel group-hover:border-brand-tactical transition-colors">
+                                <!-- DOSSIER IMAGE -->
+                                <img src="./Images/part 3/ezgif-frame-001.jpg" class="w-full h-full object-cover opacity-50 group-hover:opacity-100 transition-all duration-700 filter grayscale group-hover:grayscale-0 scale-105 group-hover:scale-100" />
+                                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+                                <!-- HUD Elements overlay -->
+                                <div class="absolute top-4 left-4 bg-black/90 px-3 py-1 text-[10px] md:text-xs font-orbitron text-brand-warning border border-brand-warning/50 tracking-widest shadow-[0_0_10px_rgba(220,38,38,0.2)]">TOP SECRET</div>
+                                <div class="absolute bottom-4 right-4 flex gap-1">
+                                    <div class="w-1 h-3 bg-brand-tactical/50 animate-pulse"></div>
+                                    <div class="w-1 h-3 bg-brand-tactical/50 animate-pulse" style="animation-delay: 0.2s"></div>
+                                    <div class="w-1 h-3 bg-brand-tactical/50 animate-pulse" style="animation-delay: 0.4s"></div>
+                                </div>
+                            </div>
+                            <div class="p-6 relative z-10">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="text-2xl font-orbitron text-white group-hover:text-brand-tactical transition-colors">PROJECT ALPHA</h3>
+                                    <span class="text-xs font-mono text-gray-500">ID: 884-AX</span>
+                                </div>
+                                <p class="text-brand-tactical text-xs font-orbitron mb-4 tracking-widest">STATUS: <span class="text-brand-accent">DEPLOYED</span></p>
+                                <p class="text-gray-400 font-sans text-sm font-light leading-relaxed">High-performance intelligence processing unit. Engineered for autonomous decision making in volatile environments.</p>
+                            </div>
+                        </div>
+
+                        <!-- Project 2 File -->
+                        <div class="dossier-card group relative p-3 cursor-pointer overflow-hidden mission-card opacity-0 translate-y-[50px]" style="transition-delay: 0.2s">
+                            <div class="hud-corner hud-tl"></div>
+                            <div class="hud-corner hud-br"></div>
+                            <div class="aspect-[16/9] relative overflow-hidden bg-black border border-brand-steel group-hover:border-brand-tactical transition-colors">
+                                <!-- DOSSIER IMAGE -->
+                                <img src="./Images/part 4/ezgif-frame-001.jpg" class="w-full h-full object-cover opacity-50 group-hover:opacity-100 transition-all duration-700 filter grayscale group-hover:grayscale-0 scale-105 group-hover:scale-100" />
+                                <div class="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80"></div>
+                                <!-- HUD Elements overlay -->
+                                <div class="absolute top-4 left-4 bg-black/90 px-3 py-1 text-[10px] md:text-xs font-orbitron text-brand-warning border border-brand-warning/50 tracking-widest shadow-[0_0_10px_rgba(220,38,38,0.2)]">RESTRICTED</div>
+                                <div class="absolute bottom-4 right-4 flex gap-1">
+                                    <div class="w-1 h-3 bg-brand-tactical/50 animate-pulse"></div>
+                                    <div class="w-1 h-3 bg-brand-tactical/50 animate-pulse" style="animation-delay: 0.2s"></div>
+                                    <div class="w-1 h-3 bg-brand-tactical/50 animate-pulse" style="animation-delay: 0.4s"></div>
+                                </div>
+                            </div>
+                            <div class="p-6 relative z-10">
+                                <div class="flex justify-between items-start mb-2">
+                                    <h3 class="text-2xl font-orbitron text-white group-hover:text-brand-tactical transition-colors">SYSTEM BETA</h3>
+                                    <span class="text-xs font-mono text-gray-500">ID: 992-Omega</span>
+                                </div>
+                                <p class="text-brand-tactical text-xs font-orbitron mb-4 tracking-widest">STATUS: <span class="text-green-500">ACTIVE</span></p>
+                                <p class="text-gray-400 font-sans text-sm font-light leading-relaxed">Automated tactical response framework. Real-time data synthesis and threat neutralization protocols.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 4: ARSENAL -->
+            <section class="h-screen flex items-center justify-end px-6 md:px-32 relative panel" id="sec-arsenal">
+                <!-- NEW: Left side Radar/Schematic -->
+                <div class="absolute left-10 md:left-32 top-1/2 -translate-y-1/2 w-[300px] md:w-[500px] h-[300px] md:h-[500px] opacity-0 scale-50 arsenal-radar pointer-events-none hidden lg:flex justify-center items-center z-0">
+                    <div class="absolute w-full h-full border border-dashed border-brand-warning/30 rounded-full animate-[spin_10s_linear_infinite]"></div>
+                    <div class="absolute w-[80%] h-[80%] border border-brand-tactical/40 rounded-full animate-[spin_15s_linear_infinite_reverse] flex items-center justify-center">
+                        <div class="w-full h-[1px] bg-brand-tactical/50"></div>
+                        <div class="h-full w-[1px] bg-brand-tactical/50 absolute"></div>
+                    </div>
+                    <div class="absolute w-[40%] h-[40%] bg-brand-warning/5 rounded-full animate-pulse border border-brand-warning flex items-center justify-center">
+                        <div class="w-1/2 h-1/2 bg-brand-tactical/20 rounded-full blur-md"></div>
+                    </div>
+                    <div class="absolute -top-4 left-10 font-orbitron text-brand-tactical text-xs tracking-[0.3em]">WEAPON SYS // ONLINE</div>
+                    <div class="absolute -bottom-4 right-10 font-orbitron text-brand-warning text-xs tracking-[0.3em] animate-pulse">CALIBRATING...</div>
+                    <div class="absolute w-1/2 h-[2px] bg-gradient-to-r from-transparent to-brand-tactical left-1/2 top-1/2 origin-left animate-[spin_3s_linear_infinite]"></div>
+                </div>
+
+                <div class="max-w-xl w-full text-right pointer-events-auto arsenal-content opacity-0 translate-x-[50px] z-10">
+                    <h2 class="text-4xl md:text-5xl font-orbitron text-white mb-10 tracking-widest uppercase">
+                        <span class="text-brand-tactical mr-4 animate-pulse">///</span>ARSENAL
+                    </h2>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <!-- Arsenal Gadgets -->
+                        <div class="border border-brand-steel/50 bg-black/60 backdrop-blur p-5 relative overflow-hidden group hover:border-brand-tactical transition-colors text-left gadget">
+                            <div class="absolute right-0 top-0 w-8 h-8 bg-brand-tactical/10 rounded-bl-full"></div>
+                            <div class="text-brand-tactical font-orbitron text-xl mb-1 tracking-wider">React</div>
+                            <div class="text-xs text-gray-500 font-mono">UI_FRAMEWORK_v18</div>
+                        </div>
+                        <div class="border border-brand-steel/50 bg-black/60 backdrop-blur p-5 relative overflow-hidden group hover:border-brand-tactical transition-colors text-left gadget">
+                            <div class="absolute right-0 top-0 w-8 h-8 bg-brand-tactical/10 rounded-bl-full"></div>
+                            <div class="text-brand-tactical font-orbitron text-xl mb-1 tracking-wider">Node.js</div>
+                            <div class="text-xs text-gray-500 font-mono">CORE_RUNTIME_ENV</div>
+                        </div>
+                        <div class="border border-brand-steel/50 bg-black/60 backdrop-blur p-5 relative overflow-hidden group hover:border-brand-tactical transition-colors text-left gadget">
+                            <div class="absolute right-0 top-0 w-8 h-8 bg-brand-tactical/10 rounded-bl-full"></div>
+                            <div class="text-brand-tactical font-orbitron text-xl mb-1 tracking-wider">Python</div>
+                            <div class="text-xs text-gray-500 font-mono">DATA_PROCESSING</div>
+                        </div>
+                        <div class="border border-brand-steel/50 bg-black/60 backdrop-blur p-5 relative overflow-hidden group hover:border-brand-tactical transition-colors text-left gadget">
+                            <div class="absolute right-0 top-0 w-8 h-8 bg-brand-tactical/10 rounded-bl-full"></div>
+                            <div class="text-brand-tactical font-orbitron text-xl mb-1 tracking-wider">AI Models</div>
+                            <div class="text-xs text-gray-500 font-mono">NEURAL_NETWORKS</div>
+                        </div>
+                        <div class="border border-brand-steel/50 bg-black/60 backdrop-blur p-5 relative overflow-hidden group hover:border-brand-tactical transition-colors text-left gadget col-span-2">
+                            <div class="absolute right-0 top-0 w-8 h-8 bg-brand-tactical/10 rounded-bl-full"></div>
+                            <div class="text-brand-tactical font-orbitron text-xl mb-1 tracking-wider">Databases</div>
+                            <div class="text-xs text-gray-500 font-mono">SQL // NOSQL // VECTOR_STORES</div>
+                        </div>
+                        <div class="border border-brand-steel/50 bg-black/60 backdrop-blur p-5 relative overflow-hidden group hover:border-brand-warning transition-colors text-left gadget">
+                            <div class="absolute right-0 top-0 w-8 h-8 bg-brand-warning/10 rounded-bl-full"></div>
+                            <div class="text-brand-warning font-orbitron text-xl mb-1 tracking-wider">CyberSec</div>
+                            <div class="text-xs text-gray-500 font-mono">ENCRYPTION // AUDIT</div>
+                        </div>
+                        <div class="border border-brand-steel/50 bg-black/60 backdrop-blur p-5 relative overflow-hidden group hover:border-brand-accent transition-colors text-left gadget">
+                            <div class="absolute right-0 top-0 w-8 h-8 bg-brand-accent/10 rounded-bl-full"></div>
+                            <div class="text-brand-accent font-orbitron text-xl mb-1 tracking-wider">Cloud Deploy</div>
+                            <div class="text-xs text-gray-500 font-mono">AWS // GCP // DOCKER</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION 5: FINAL SIGNAL -->
+            <section class="h-screen flex items-center justify-center relative panel" id="sec-final">
+                <div class="text-center z-20 pointer-events-auto bg-black/70 p-10 md:p-16 border border-brand-steel backdrop-blur-md relative cta-panel opacity-0 scale-95 shadow-[0_0_50px_rgba(0,0,0,0.8)]">
+                    <div class="hud-corner hud-tl"></div>
+                    <div class="hud-corner hud-tr"></div>
+                    <div class="hud-corner hud-bl"></div>
+                    <div class="hud-corner hud-br"></div>
+                    <div class="absolute top-0 left-0 w-full h-1 bg-brand-warning shadow-[0_0_15px_#DC2626]"></div>
+                    
+                    <h2 class="text-4xl md:text-6xl font-orbitron text-white mb-4 tracking-widest">SIGNAL ME</h2>
+                    <p class="text-gray-400 font-sans mb-10 tracking-widest text-sm md:text-base uppercase">System ready for deployment.</p>
+                    
+                    <a href="mailto:contact@kunal.dev" class="inline-block px-10 py-4 border border-brand-tactical text-brand-tactical font-orbitron uppercase tracking-widest tactical-btn text-sm md:text-base bg-black/50 backdrop-blur">
+                        <span class="relative z-10 flex items-center gap-3">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            Establish Contact
+                        </span>
+                    </a>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        // --- LENIS SMOOTH SCROLL ---
+        const lenis = new Lenis({
+            duration: 1.5,
+            easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+            smooth: true,
+            direction: 'vertical',
+            gestureDirection: 'vertical',
+        });
+
+        lenis.on('scroll', ScrollTrigger.update);
+        gsap.ticker.add((time) => { lenis.raf(time * 1000); });
+        gsap.ticker.lagSmoothing(0, 0);
+
+        // --- CURSOR SPOTLIGHT & CROSSHAIR ---
+        document.addEventListener('mousemove', (e) => {
+            const spotlight = document.getElementById('spotlight');
+            spotlight.style.setProperty('--x', e.clientX + 'px');
+            spotlight.style.setProperty('--y', e.clientY + 'px');
+            
+            const crosshair = document.getElementById('crosshair');
+            if(crosshair) {
+                crosshair.style.left = e.clientX + 'px';
+                crosshair.style.top = e.clientY + 'px';
+            }
+        });
+
+        // --- AUDIO TRIGGER ---
+        const audioTrigger = document.getElementById('audio-trigger');
+        const audio = document.getElementById('ambient-audio');
+        audio.volume = 0.3;
+        let isAudioPlaying = false;
+
+        audioTrigger.addEventListener('click', () => {
+            if (isAudioPlaying) {
+                audio.pause();
+                audioTrigger.innerText = 'SYSTEM AUDIO: OFF';
+                audioTrigger.style.color = 'var(--steel)';
+                audioTrigger.style.borderColor = 'var(--steel)';
+            } else {
+                audio.play();
+                audioTrigger.innerText = 'SYSTEM AUDIO: ON';
+                audioTrigger.style.color = 'var(--tactical)';
+                audioTrigger.style.borderColor = 'var(--tactical)';
+            }
+            isAudioPlaying = !isAudioPlaying;
+        });
+
+        // --- INITIALIZER SEQUENCE ---
+        const initSequence = () => {
+            const texts = document.querySelectorAll('.init-text');
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    gsap.to('#initializer', { opacity: 0, duration: 1, delay: 0.5, onComplete: () => {
+                        document.getElementById('initializer').style.display = 'none';
+                        startMainAnimations();
+                    }});
+                }
+            });
+
+            texts.forEach((text, i) => {
+                tl.to(text, { opacity: 1, duration: 0.1 }, i * 0.8)
+                  .to(text, { opacity: 0.7, duration: 0.1, yoyo: true, repeat: 3 });
+            });
+        };
+
+        window.onload = () => {
+            setTimeout(initSequence, 500);
+        };
+
+        // --- THREE.JS FOG & RAIN ---
+        const initThreeJS = () => {
+            const canvas = document.getElementById('three-canvas');
+            const scene = new THREE.Scene();
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 1, 1000);
+            camera.position.z = 10;
+
+            const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            // Fog Particles
+            const smokeParticles = [];
+            const smokeTexture = new THREE.TextureLoader().load('https://raw.githubusercontent.com/mrdoob/three.js/master/examples/textures/sprites/smoke.png');
+            const smokeMaterial = new THREE.MeshLambertMaterial({ color: 0x222222, map: smokeTexture, transparent: true, opacity: 0.4 });
+            const smokeGeo = new THREE.PlaneGeometry(15, 15);
+
+            for (let p = 0; p < 15; p++) {
+                const particle = new THREE.Mesh(smokeGeo, smokeMaterial);
+                particle.position.set(Math.random() * 20 - 10, Math.random() * 20 - 10, Math.random() * 10 - 5);
+                particle.rotation.z = Math.random() * 360;
+                scene.add(particle);
+                smokeParticles.push(particle);
+            }
+
+            // Light
+            const ambientLight = new THREE.AmbientLight(0x111111);
+            scene.add(ambientLight);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            directionalLight.position.set(-1, 0, 1);
+            scene.add(directionalLight);
+            
+            // tactical light
+            const tacticalLight = new THREE.PointLight(0xD4AF37, 1, 20);
+            tacticalLight.position.set(0, 0, 5);
+            scene.add(tacticalLight);
+
+            // Rain Particles
+            const rainCount = 400;
+            const rainGeo = new THREE.BufferGeometry();
+            const rainPos = new Float32Array(rainCount * 3);
+            for(let i=0; i<rainCount*3; i+=3) {
+                rainPos[i] = Math.random() * 40 - 20;
+                rainPos[i+1] = Math.random() * 40 - 20;
+                rainPos[i+2] = Math.random() * 20 - 10;
+            }
+            rainGeo.setAttribute('position', new THREE.BufferAttribute(rainPos, 3));
+            const rainMaterial = new THREE.PointsMaterial({
+                color: 0xaaaaaa, size: 0.05, transparent: true, opacity: 0.6
+            });
+            const rain = new THREE.Points(rainGeo, rainMaterial);
+            scene.add(rain);
+
+            let clock = new THREE.Clock();
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+                const delta = clock.getDelta();
+
+                // Smoke evolution
+                smokeParticles.forEach(p => {
+                    p.rotation.z += delta * 0.1;
+                });
+
+                // Rain evolution
+                const positions = rain.geometry.attributes.position.array;
+                for(let i=1; i<rainCount*3; i+=3) {
+                    positions[i] -= 0.5 + Math.random() * 0.1; // fall speed
+                    if (positions[i] < -20) {
+                        positions[i] = 20; // reset to top
+                    }
+                }
+                rain.geometry.attributes.position.needsUpdate = true;
+
+                // Subtle Camera Shake (Cinematic)
+                camera.position.x = Math.sin(Date.now() * 0.001) * 0.05;
+                camera.position.y = Math.cos(Date.now() * 0.001) * 0.05;
+
+                renderer.render(scene, camera);
+            };
+            animate();
+
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        };
+        initThreeJS();
+
+        // --- CANVAS SEQUENCE FRAME ANIMATION ---
+        const canvasSeq = document.getElementById('sequence-canvas');
+        const ctx = canvasSeq.getContext('2d');
+        
+        const setCanvasSize = () => {
+            canvasSeq.width = window.innerWidth;
+            canvasSeq.height = window.innerHeight;
+        };
+        setCanvasSize();
+
+        const frameCount = 98;
+        const images = [];
+        const imagePaths = [];
+        
+        // Load Part 3 (41 images)
+        for (let i = 1; i <= 41; i++) {
+            const num = i.toString().padStart(3, '0');
+            imagePaths.push(`./Images/part 3/ezgif-frame-${num}.jpg`);
+        }
+        // Load Part 4 (57 images)
+        for (let i = 1; i <= 57; i++) {
+            const num = i.toString().padStart(3, '0');
+            imagePaths.push(`./Images/part 4/ezgif-frame-${num}.jpg`);
+        }
+
+        imagePaths.forEach(path => {
+            const img = new Image();
+            img.src = path;
+            images.push(img);
+        });
+
+        const sequenceObj = { frame: 0 };
+        
+        const renderSequenceFrame = () => {
+            if (images[sequenceObj.frame] && images[sequenceObj.frame].complete) {
+                ctx.clearRect(0, 0, canvasSeq.width, canvasSeq.height);
+                const img = images[sequenceObj.frame];
+                const canvasRatio = canvasSeq.width / canvasSeq.height;
+                const imgRatio = img.width / img.height;
+                let drawWidth, drawHeight, offsetX, offsetY;
+
+                if (canvasRatio > imgRatio) {
+                    drawWidth = canvasSeq.width;
+                    drawHeight = canvasSeq.width / imgRatio;
+                    offsetX = 0;
+                    offsetY = (canvasSeq.height - drawHeight) / 2;
+                } else {
+                    drawHeight = canvasSeq.height;
+                    drawWidth = canvasSeq.height * imgRatio;
+                    offsetX = (canvasSeq.width - drawWidth) / 2;
+                    offsetY = 0;
+                }
+
+                ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+            }
+        };
+
+        images[0].onload = renderSequenceFrame;
+
+        gsap.to(sequenceObj, {
+            frame: frameCount - 1,
+            snap: "frame",
+            ease: "none",
+            scrollTrigger: {
+                trigger: ".scroll-container",
+                start: "top top",
+                end: "bottom bottom",
+                scrub: 1,
+                onUpdate: renderSequenceFrame
+            }
+        });
+
+        // Background Timeline
+        const bgTl = gsap.timeline({
+            scrollTrigger: {
+                trigger: ".scroll-container",
+                start: "top top",
+                end: "bottom bottom",
+                scrub: 1
+            }
+        });
+
+        bgTl.to('#bg-video-1', { opacity: 0, ease: 'none', duration: 1 }, 2)  // fade out
+            .to('#bg-video-2', { opacity: 0.8, ease: 'none', duration: 1 }, 2) // fade in
+            .to('#bg-video-2', { opacity: 0, ease: 'none', duration: 1 }, 6)  // fade out
+            .to('#sequence-canvas', { opacity: 0.8, ease: 'none', duration: 1 }, 6); // fade in sequence
+
+        // Video Performance Optimization (Play/Pause on scroll)
+        bgTl.eventCallback("onUpdate", function() {
+            const progress = this.progress();
+            const v1 = document.getElementById('bg-video-1');
+            const v2 = document.getElementById('bg-video-2');
+            
+            if(progress < 0.35) {
+                if(v1.paused) v1.play().catch(()=>{});
+            } else {
+                if(!v1.paused) v1.pause();
+            }
+
+            if(progress >= 0.15 && progress < 0.75) {
+                if(v2.paused) v2.play().catch(()=>{});
+            } else {
+                if(!v2.paused) v2.pause();
+            }
+        });
+
+        // Interactive Hover Brightness
+        const interactives = document.querySelectorAll('a, button, .dossier-card, .gadget, .skill-panel');
+        interactives.forEach(el => {
+            el.addEventListener('mouseenter', () => document.body.classList.add('hover-active'));
+            el.addEventListener('mouseleave', () => document.body.classList.remove('hover-active'));
+        });
+
+        // --- BAT SYSTEM (CLICK & AMBIENT) ---
+        const batSVG = `
+        <svg width="80" height="40" viewBox="0 0 100 50" xmlns="http://www.w3.org/2000/svg">
+            <g class="bat-wing">
+                <path d="M50 25 Q 25 -5 0 10 Q 20 30 10 45 Q 30 35 50 45 Q 70 35 90 45 Q 80 30 100 10 Q 75 -5 50 25 Z" fill="#080808" stroke="#1a1a1a" stroke-width="1"/>
+            </g>
+            <ellipse cx="50" cy="25" rx="5" ry="12" fill="#020202" />
+            <polygon points="47,15 43,2 50,13" fill="#020202" />
+            <polygon points="53,15 57,2 50,13" fill="#020202" />
+            <circle cx="47" cy="20" r="1.8" fill="#ff0000" style="animation: pulseEye 0.2s infinite alternate;" />
+            <circle cx="53" cy="20" r="1.8" fill="#ff0000" style="animation: pulseEye 0.2s infinite alternate;" />
+        </svg>`;
+
+        const createBat = (x, y, isAmbient = false) => {
+            const bat = document.createElement('div');
+            bat.className = 'bat-entity';
+            bat.innerHTML = batSVG;
+            
+            bat.style.left = x + 'px';
+            bat.style.top = y + 'px';
+            
+            const scale = 0.3 + Math.random() * 0.7;
+            gsap.set(bat, { scale: 0, opacity: 0 });
+            
+            document.body.appendChild(bat);
+
+            const endX = x + (Math.random() - 0.5) * 800;
+            const endY = y - 300 - Math.random() * 500; 
+            
+            const angle = Math.atan2(endY - y, endX - x) * 180 / Math.PI + 90;
+            gsap.set(bat, { rotation: angle });
+
+            const duration = 2.5 + Math.random() * 3;
+
+            const tl = gsap.timeline({ onComplete: () => bat.remove() });
+            tl.to(bat, { opacity: isAmbient ? 0.6 : 1, scale: scale, duration: 0.3 })
+              .to(bat, { 
+                  x: endX - x, 
+                  y: endY - y, 
+                  duration: duration, 
+                  ease: "power1.inOut" 
+              }, 0)
+              .to(bat, { opacity: 0, duration: 0.5 }, duration - 0.5);
+        };
+
+        document.addEventListener('click', (e) => {
+            if (e.target.closest('a') || e.target.closest('button') || e.target.closest('#audio-trigger')) return; 
+            const count = 2 + Math.floor(Math.random() * 3);
+            for(let i=0; i<count; i++) {
+                setTimeout(() => createBat(e.clientX, e.clientY), i * 150);
+            }
+        });
+
+        setInterval(() => {
+            if (document.visibilityState === 'visible') {
+                const startX = Math.random() * window.innerWidth;
+                const startY = window.innerHeight + 50; 
+                createBat(startX, startY, true);
+            }
+        }, 1500);
+
+        // --- MAIN UI ANIMATIONS ---
+        const startMainAnimations = () => {
+            
+            // Background Text Parallax
+            gsap.to('.parallax-bg-1', {
+                xPercent: -30,
+                ease: 'none',
+                scrollTrigger: { trigger: ".scroll-container", start: "top top", end: "bottom bottom", scrub: 1 }
+            });
+            gsap.to('.parallax-bg-2', {
+                xPercent: 30,
+                ease: 'none',
+                scrollTrigger: { trigger: ".scroll-container", start: "top top", end: "bottom bottom", scrub: 1 }
+            });
+
+            // Section 1: Hero
+            const tl1 = gsap.timeline();
+            tl1.to('#main-bat-signal', { opacity: 0.5, scale: 1.2, duration: 3, ease: 'power2.out' })
+               .to('.hero-content', { opacity: 1, duration: 1 }, "-=2")
+               .to('.hero-line', { width: '100%', duration: 1.5, ease: 'power3.inOut' }, "-=1")
+               .to('.hero-subtitle', { opacity: 1, y: -10, duration: 1 }, "-=0.5");
+
+            // Section 2: Skills
+            gsap.to('.skill-panel', {
+                scrollTrigger: {
+                    trigger: '#sec-skills',
+                    start: 'top 60%',
+                    end: 'center center',
+                    scrub: 1
+                },
+                opacity: 1,
+                x: 0,
+                ease: 'power2.out'
+            });
+            gsap.to('.skill-hologram', {
+                scrollTrigger: {
+                    trigger: '#sec-skills',
+                    start: 'top 60%',
+                    end: 'center center',
+                    scrub: 1
+                },
+                opacity: 0.6,
+                scale: 1,
+                ease: 'power2.out'
+            });
+
+            // Section 3: Missions
+            const tl3 = gsap.timeline({
+                scrollTrigger: {
+                    trigger: '#sec-missions',
+                    start: 'top 70%',
+                    end: 'center center',
+                    scrub: 1
+                }
+            });
+            tl3.to('.mission-bg', { opacity: 1, duration: 1 }, 0)
+               .to('.mission-header', { opacity: 1, y: 0, duration: 1 }, 0.5)
+               .to('.mission-card', { opacity: 1, y: 0, stagger: 0.3, duration: 1 }, "-=0.5");
+
+            // Section 4: Arsenal
+            gsap.to('.arsenal-content', {
+                scrollTrigger: {
+                    trigger: '#sec-arsenal',
+                    start: 'top 60%',
+                    end: 'center center',
+                    scrub: 1
+                },
+                opacity: 1,
+                x: 0,
+                ease: 'power2.out'
+            });
+            gsap.to('.arsenal-radar', {
+                scrollTrigger: {
+                    trigger: '#sec-arsenal',
+                    start: 'top 60%',
+                    end: 'center center',
+                    scrub: 1
+                },
+                opacity: 0.6,
+                scale: 1,
+                rotation: 90,
+                ease: 'power2.out'
+            });
+
+            // Section 5: Final CTA
+            gsap.to('.cta-panel', {
+                scrollTrigger: {
+                    trigger: '#sec-final',
+                    start: 'top 70%',
+                    end: 'center center',
+                    scrub: 1
+                },
+                opacity: 1,
+                scale: 1,
+                ease: 'back.out(1.7)'
+            });
+        };
+
+        window.addEventListener('resize', () => {
+            setCanvasSize();
+            renderSequenceFrame();
+        });
+
+    </script>
+</body>
+</html>
